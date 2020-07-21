@@ -127,15 +127,7 @@ public class TRECQueryParser extends DefaultHandler {
             query.add(query1, BooleanClause.Occur.SHOULD);
         }	
 			st = trecQuery.desc.split("\\s+");
-        for (String s : st) {
-
-            Term term1 = new Term(TrecDocIndexer.CHEMICAL_LIST, s);
-            //create the term query object
-            Query query1 = new TermQuery(term1);
-            query.add(query1, BooleanClause.Occur.SHOULD);
-        }
-	
-
+       
 	//System.out.println("The query is "+query);
 	return query;
     }
