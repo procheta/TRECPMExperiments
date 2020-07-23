@@ -8,6 +8,7 @@ package org.luc4ir.sampleIndex;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import org.apache.lucene.analysis.Analyzer;
@@ -32,23 +33,22 @@ import org.luc4ir.indexing.TrecDocIndexer;
  * @author Procheta
  */
 public class SampleIndexer {
-    
+
     IndexReader reader;
     IndexSearcher searcher;
     Properties prop;
     Analyzer analyzer;
     int numWanted;
     IndexWriter writer;
-    
-    
-    public SampleIndexer(String propFile) throws IOException, Exception{
-    
+
+    public SampleIndexer(String propFile) throws IOException, Exception {
+
         TrecDocIndexer indexer = new TrecDocIndexer(propFile);
         prop = indexer.getProperties();
         Analyzer analyzer = new EnglishAnalyzer();
-        numWanted =2000;
+        numWanted = 2000;
         String indexPath = prop.getProperty("index");
-        File  indexDir = new File(indexPath);
+        File indexDir = new File(indexPath);
         reader = DirectoryReader.open(FSDirectory.open(indexDir.toPath()));
         searcher = new IndexSearcher(reader);
         searcher.setSimilarity(new BM25Similarity(1, 0.5f));
@@ -57,39 +57,53 @@ public class SampleIndexer {
         indexPath = prop.getProperty("sampleIndex");
         indexDir = new File(indexPath);
         writer = new IndexWriter(FSDirectory.open(indexDir.toPath()), iwcfg);
-    
-    
+
     }
-    public List<TRECQuery> constructQueries() throws Exception {        
+
+    public List<TRECQuery> constructQueries() throws Exception {
         String queryFile = prop.getProperty("query.file");
         TRECQueryParser parser = new TRECQueryParser(queryFile, analyzer);
         parser.parse();
         return parser.getQueries();
     }
-    
+
     TopDocs retrieve(TRECQuery query) throws IOException {
         return searcher.search(query.getLuceneQueryObj(), numWanted);
     }
-    
-     public void createSampleIndex() throws Exception {
-                
+
+    public void createSampleIndex() throws Exception {
+
         List<TRECQuery> queries = constructQueries();
-        
-        for (TRECQuery query : queries) {          
-            System.out.println("Executing query: " + query.getLuceneQueryObj());           
+
+        for (TRECQuery query : queries) {
+            System.out.println("Executing query: " + query.getLuceneQueryObj());
             TopDocs topDocs = retrieve(query);
             int length = topDocs.scoreDocs.length;
-            for (int i=0; i < length; i++){
+            for (int i = 0; i < length; i++) {
                 Document doc = reader.document(topDocs.scoreDocs[i].doc);
                 writer.addDocument(doc);
             }
         }
         writer.close();
-     }
-     
-     public static void main(String[] args) throws Exception{
-     
-         SampleIndexer si = new SampleIndexer("retrieve.properties");
-         si.createSampleIndex();    
-     }
+    }
+
+    public void createSampleIndex_v2() throws Exception {
+
+        HashSet<String> docIds = new HashSet<>();
+        for (int i = 0; i < reader.numDocs(); i++) {
+            Document doc = reader.document(i);
+            if (!docIds.contains(doc.get("id"))) {
+                docIds.add(doc.get("id"));
+                writer.addDocument(doc);
+            }
+        }
+
+        writer.close();
+    }
+
+    public static void main(String[] args) throws Exception {
+
+        SampleIndexer si = new SampleIndexer("C:\\Users\\Procheta\\Downloads\\luc4ir-master\\src\\main\\java\\org\\luc4ir\\retriever\\init.properties");
+        si.createSampleIndex_v2();
+    }
 }

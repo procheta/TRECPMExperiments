@@ -36,7 +36,7 @@ public class TrecDocIndexer {
     List<String> stopwords;
     int pass;
 
-    static final public String FIELD_ID = "id_info";
+    static final public String FIELD_ID = "id";
     static final public String FIELD_ANALYZED_CONTENT = "words";  // Standard analyzer w/o stopwords.
     static final public String DATE_CREATED = "datecreated";
     static final public String DATE_COMPLETED = "datecompleted";
@@ -232,11 +232,10 @@ catch(Exception ex)
         if (args.length == 0) {
             args = new String[1];
             System.out.println("Usage: java TrecDocIndexer <prop-file>");
-            args[0] = "C:\\Users\\Procheta\\Downloads\\luc4ir-master\\src\\main\\java\\org\\luc4ir\\retriever/init.properties";
+            args[0] = "C:\\Users\\Procheta\\Downloads\\luc4ir-master\\src\\main\\java\\org\\luc4ir\\retriever\\init.properties";
         }
 
         try {
-            System.out.println("We are startif from hwre");
             TrecDocIndexer indexer = new TrecDocIndexer(args[0]);
             indexer.processAll();
         } catch (Exception ex) {

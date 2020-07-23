@@ -164,11 +164,11 @@ public class TRECQueryParser extends DefaultHandler {
     public void endElement(String uri, String localName, String qName) throws SAXException {
         try {
             if (qName.equalsIgnoreCase("title"))
-                query.title = analyze(buff.toString(),"/home/irlab/Documents/share/sonal/luc4ir-master/stop.txt");            
+                query.title = analyze(buff.toString(),"stop.txt");            
             else if (qName.equalsIgnoreCase("desc"))
-                query.desc = analyze(buff.toString(),"/home/irlab/Documents/share/sonal/luc4ir-master/stop.txt");
+                query.desc = analyze(buff.toString(),"stop.txt");
             else if (qName.equalsIgnoreCase("narr"))
-                query.narr = analyze(buff.toString(),"/home/irlab/Documents/share/sonal/luc4ir-master/stop.txt");
+                query.narr = analyze(buff.toString(),"stop.txt");
             else if (qName.equalsIgnoreCase("num"))
                 query.id = buff.toString();
             else if (qName.equalsIgnoreCase("top"))

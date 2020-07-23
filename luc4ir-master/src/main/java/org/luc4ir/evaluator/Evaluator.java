@@ -54,9 +54,9 @@ class AllRelRcds {
     }
     
     int getTotalNumRel() {
-        if (totalNumRel > 0)
-            return totalNumRel;
-        
+        //if (totalNumRel > 0)
+            //return totalNumRel;
+        totalNumRel=0;
         for (Map.Entry<String, PerQueryRelDocs> e : perQueryRels.entrySet()) {
             PerQueryRelDocs perQryRelDocs = e.getValue();
             totalNumRel += perQryRelDocs.numRel;
@@ -317,8 +317,10 @@ class AllRetrievedResults {
                 ndcg_5 = thisNDCG_5;
             }
         }
-        
-        buff.append("recall:\t").append(avgRecall/(float)allRelInfo.getTotalNumRel()).append("\n");
+        System.out.println(allRelInfo.getTotalNumRel());
+        float f = avgRecall/(float)allRelInfo.getTotalNumRel();
+        System.out.println("recall values "+ avgRecall + " "+f);
+        buff.append("recall:\t").append(avgRecall/5588).append("\n");
         buff.append("map:\t").append(map/numQueries).append("\n");
         buff.append("gmap:\t").append((float)Math.exp(gm_ap/numQueries)).append("\n");
         buff.append("P@5:\t").append(pAt5/numQueries).append("\n");
