@@ -49,7 +49,7 @@ public class TrecDocIndexer {
     static final public String MESH_HEADING = "meshheading";
     static final public String INTERVENTION = "intervention";
     static final public String ELIGIBILITY = "eligibilty";
-
+    static final public String KEYWORD_LIST ="keywords";
 
     static final public String PUBMED_DATA = "pubmeddata";
     static final public String ABSTRACT_TEXT = "abstract";
@@ -134,16 +134,25 @@ public class TrecDocIndexer {
         }
     }
 
-    Document constructDoc(String fname,String PMID,String abst,String art_title,String meshs) throws IOException {
+    Document constructDoc(String id, String created, String completed, String revised, String title, String abst, String pagenum, String authors, String medlineinfo, String chemicals, String meshs, String PubmedDate,String keyw) throws IOException {
         Document doc = new Document();
-        doc.add(new Field(FIELD_ID,fname, Field.Store.YES, Field.Index.NOT_ANALYZED));
+        doc.add(new Field(FIELD_ID, id, Field.Store.YES, Field.Index.NOT_ANALYZED));
         // For the 1st pass, use a standard analyzer to write out
         // the words (also store the term vector)
-        doc.add(new Field(ARTICLE_TITLE, art_title, Field.Store.YES, Field.Index.ANALYZED, Field.TermVector.YES));
-        doc.add(new Field(ABSTRACT_TEXT, abst, Field.Store.YES, Field.Index.ANALYZED, Field.TermVector.YES));
+        doc.add(new Field(DATE_CREATED, created, Field.Store.YES, Field.Index.NOT_ANALYZED, Field.TermVector.YES));
+        doc.add(new Field(DATE_COMPLETED, completed, Field.Store.YES, Field.Index.NOT_ANALYZED, Field.TermVector.YES));
+        doc.add(new Field(DATE_REVISED, revised, Field.Store.YES, Field.Index.NOT_ANALYZED, Field.TermVector.YES));
+        doc.add(new Field(ARTICLE_TITLE, title, Field.Store.YES, Field.Index.ANALYZED, Field.TermVector.YES));
+        doc.add(new Field(PAGE_NUM, pagenum, Field.Store.YES, Field.Index.NOT_ANALYZED, Field.TermVector.YES));
+        doc.add(new Field(AUTHOR_LIST, authors, Field.Store.YES, Field.Index.NOT_ANALYZED, Field.TermVector.YES));
+        doc.add(new Field(MEDLINE_JOURN, medlineinfo, Field.Store.YES, Field.Index.NOT_ANALYZED, Field.TermVector.YES));
+        doc.add(new Field(CHEMICAL_LIST, chemicals, Field.Store.YES, Field.Index.ANALYZED, Field.TermVector.YES));
         doc.add(new Field(MESH_HEADING, meshs, Field.Store.YES, Field.Index.ANALYZED, Field.TermVector.YES));
-	
-  //      System.out.println("Indexing " + id);
+        doc.add(new Field(PUBMED_DATA, PubmedDate, Field.Store.YES, Field.Index.NOT_ANALYZED, Field.TermVector.YES));
+        doc.add(new Field(ABSTRACT_TEXT, abst, Field.Store.YES, Field.Index.ANALYZED, Field.TermVector.YES));
+        doc.add(new Field(KEYWORD_LIST, keyw, Field.Store.YES, Field.Index.ANALYZED, Field.TermVector.YES));
+        
+        System.out.println("Indexing " + id);
 
         return doc;
     }
@@ -161,8 +170,94 @@ public class TrecDocIndexer {
             txtbuff.append(line).append("\n");
         }
         String content = txtbuff.toString();
-
         org.jsoup.nodes.Document jdoc = Jsoup.parse(content);
+        Elements docElts = jdoc.select("PubmedArticleSet");
+        Element docElt = docElts.get(0);
+        Elements Articles = docElt.select("PubmedArticle");
+//        System.out.println(" Number of Articles " + Articles.size());
+   
+
+        for (int i = 0; i < Articles.size(); i++) {
+            String authors = "";
+            String chemicals = "";
+            String delim = ",";
+            String meshs = "";
+            String abst = "";
+            ArrayList<String> authort = new ArrayList<String>();
+            ArrayList<String> chemicalis = new ArrayList<String>();
+            ArrayList<String> meshlis = new ArrayList<String>();
+
+            String PMID = Articles.get(i).select("PMID").first().text();
+	    try{
+//            System.out.println("The pmid is " + PMID);
+            Elements authorsil = Articles.get(i).select("AuthorList");
+	    if(authorsil != null)
+	{
+	     Elements authorsi =authorsil.select("Author");
+            for (Element author : authorsi) {
+                authors = author.text();
+                authort.add(authors);
+                authors = "";
+            }
+            authors = String.join(delim, authort);
+	  
+	}
+            Element abstarct = Articles.get(i).select("AbstractText").first();
+            if (abstarct != null) {
+		abst=abstarct.text();
+	//       	System.out.println("The abstratc is "+abst);
+
+	    }
+
+            Elements medlineinfo = Articles.get(i).select("MedlineJournalInfo");
+            Elements chemicalElements = Articles.get(i).select("Chemical");
+            if (chemicalElements != null) {
+                for (Element element : chemicalElements) {
+                    chemicalis.add(element.text());
+                    chemicals = "";
+                }
+                chemicals = String.join(delim, chemicalis);
+	    }
+            Elements MeshHeadingElements = Articles.get(i).select("MeshHeading");
+            if (MeshHeadingElements != null) {
+                for (Element element : MeshHeadingElements) {
+                    meshs = element.text();
+                    meshlis.add(meshs);
+                    meshs = "";
+                }
+                meshs = String.join(delim, meshlis);
+            }
+            Element KeywordL = Articles.get(i).select("KeywordList").first();
+            Element PubmedDate = Articles.get(i).select("PubmedData").first();
+            Element created = Articles.get(i).select("DateCreated").first();
+            Element completed = Articles.get(i).select("DateCompleted").first();
+            Element revised = Articles.get(i).select("DateRevised").first();
+            Element title = Articles.get(i).select("ArticleTitle").first();
+            Element pagenum = Articles.get(i).select("pagenum").first();
+            String pageNumText="";
+	    String creat ="";
+            String compe ="";
+            String revi="";
+	    String medline="";
+	    String Pubm="";
+            String keyw="";
+            if(pagenum != null)
+                pageNumText = pagenum.text();
+	    if(created != null)
+	   	 creat=created.text();
+	    if(completed != null)
+	   	compe=completed.text();
+	    if(revised != null)
+		revi=revised.text();
+	    if(medlineinfo != null)
+		medline=medlineinfo.text();
+	    if(PubmedDate != null)
+		Pubm=PubmedDate.text();
+            if(KeywordL!=null)
+                keyw=KeywordL.text();
+	  doc = constructDoc(PMID,creat,compe,revi,title.text(),abst,pageNumText,authors,medline,chemicals,meshs,Pubm,keyw);
+                   writer.addDocument(doc);
+     /*   org.jsoup.nodes.Document jdoc = Jsoup.parse(content);
         Elements Articles = jdoc.select("clinical_study");
    
 
@@ -220,7 +315,7 @@ public class TrecDocIndexer {
 	    abst=abst+" "+brief_summ+" "+Inte+" "+text_b;
 	  doc = constructDoc(fname,PMID,abst,art_title,meshs);
                   writer.addDocument(doc);
- }
+ }*/}
 catch(Exception ex)
 {
 	System.out.println("The document which caused error are "+PMID);
@@ -232,7 +327,7 @@ catch(Exception ex)
         if (args.length == 0) {
             args = new String[1];
             System.out.println("Usage: java TrecDocIndexer <prop-file>");
-            args[0] = "C:\\Users\\Procheta\\Downloads\\luc4ir-master\\src\\main\\java\\org\\luc4ir\\retriever\\init.properties";
+            args[0] = "/home/irlab/Documents/share/sonal/git_luc4ir-master/TRECPMExperiments/luc4ir-master/index.properties";
         }
 
         try {
@@ -243,3 +338,4 @@ catch(Exception ex)
         }
     }
 }
+
