@@ -74,11 +74,7 @@ public class TRECQueryParser extends DefaultHandler {
         catch (Exception ex) { ex.printStackTrace(); }
     }
     
-    /*public Query constructLuceneQueryObj_v1(TRECQuery trecQuery) throws QueryNodeException {    
-	String S= trecQuery.title+" "+trecQuery.desc+" "+trecQuery.narr;    
-        Query luceneQuery = queryParser.parse(S, TrecDocIndexer.ABSTRACT_TEXT,TrecDocIndexer.ARTICLE_TITLE,TrecDocIndexer.CHEMICAL_LIST,TrecDocIndexer.MESH_HEADING);
-        return luceneQuery;
-    }*/
+
     public Query constructLuceneQueryObj(TRECQuery trecQuery) throws QueryNodeException {    
 
 		
@@ -88,15 +84,13 @@ public class TRECQueryParser extends DefaultHandler {
 
             Term term1 = new Term(TrecDocIndexer.ARTICLE_TITLE, s);
             //create the term query object
-            Query query1 = new TermQuery(term1);
+            Query query1 = new TermQuery(term1);           
+            //query1.setBoost(1.2f);
             query.add(query1, BooleanClause.Occur.SHOULD);
         }
-/*	Term term1 = new Term(TrecDocIndexer.ARTICLE_TITLE, trecQuery.title);
-        //create the term query object
-        Query query1 = new TermQuery(term1);*/
+
 	st = trecQuery.narr.split("\\s+");
         for (String s : st) {
-
             Term term1 = new Term(TrecDocIndexer.ABSTRACT_TEXT, s);
             //create the term query object
             Query query1 = new TermQuery(term1);
@@ -108,25 +102,27 @@ public class TRECQueryParser extends DefaultHandler {
             Term term1 = new Term(TrecDocIndexer.MESH_HEADING, s);
             //create the term query object
             Query query1 = new TermQuery(term1);
+            query1.setBoost(.8f);
             query.add(query1, BooleanClause.Occur.SHOULD);
         }
-		st = trecQuery.desc.split("\\s+");
+	st = trecQuery.desc.split("\\s+");
         for (String s : st) {
 
             Term term1 = new Term(TrecDocIndexer.ABSTRACT_TEXT, s);
             //create the term query object
             Query query1 = new TermQuery(term1);
+            query1.setBoost(1.5f);
             query.add(query1, BooleanClause.Occur.SHOULD);
         }
-			st = trecQuery.title.split("\\s+");
+	st = trecQuery.title.split("\\s+");
         for (String s : st) {
 
             Term term1 = new Term(TrecDocIndexer.ABSTRACT_TEXT, s);
             //create the term query object
             Query query1 = new TermQuery(term1);
+            query1.setBoost(1.5f);
             query.add(query1, BooleanClause.Occur.SHOULD);
-        }	
-			st = trecQuery.desc.split("\\s+");
+        }
        
 	//System.out.println("The query is "+query);
 	return query;
