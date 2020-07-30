@@ -8,6 +8,7 @@ package org.luc4ir.retriever;
  *
  * @author Debasis
  */
+import com.github.junrar.unsigned.UnsignedByte;
 import org.luc4ir.evaluator.Evaluator;
 import org.luc4ir.feedback.RelevanceModelConditional;
 import org.luc4ir.feedback.RelevanceModelIId;
@@ -40,6 +41,7 @@ public class TrecDocRetriever {
     boolean postRLMQE;
     boolean postQERerank;
     Similarity model;
+    boolean preretievalExpansion;
 
     public TrecDocRetriever(String propFile, Similarity sim) throws Exception {
         indexer = new TrecDocIndexer(propFile);
@@ -59,6 +61,7 @@ public class TrecDocRetriever {
             runName = prop.getProperty("retrieve.runname", "bm");
 
             kdeType = prop.getProperty("rlm.type", "uni");
+            preretievalExpansion = Boolean.parseBoolean(prop.getProperty("preretievalExpansion", "false"));
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -74,8 +77,10 @@ public class TrecDocRetriever {
 
     public List<TRECQuery> constructQueries() throws Exception {
         String queryFile = prop.getProperty("query.file");
-        TRECQueryParser parser = new TRECQueryParser(queryFile, indexer.getAnalyzer());
+        TRECQueryParser parser = new TRECQueryParser(queryFile, indexer.getAnalyzer(), preretievalExpansion);
         parser.parse();
+        if(preretievalExpansion)
+               parser.addExpansionTerms();
         return parser.getQueries();
     }
 
@@ -169,6 +174,7 @@ public class TrecDocRetriever {
 
             // Print query
             //System.out.println("Executing query: " + query.getLuceneQueryObj());
+            
             // Retrieve results
             topDocs = retrieve(query);
 

@@ -33,25 +33,33 @@ import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 
 public class TRECQueryParser extends DefaultHandler {
-    StringBuffer        buff;      // Accumulation buffer for storing the current topic
-    String              fileName;
-    TRECQuery           query;
-    Analyzer            analyzer;
+
+    StringBuffer buff;      // Accumulation buffer for storing the current topic
+    String fileName;
+    TRECQuery query;
+    Analyzer analyzer;
     StandardQueryParser queryParser;
-    
-    public List<TRECQuery>  queries;
+    ArrayList<String> expansionTerms;
+    boolean expansionflag;
+    public List<TRECQuery> queries;
     final static String[] tags = {"id", "title", "desc", "narr"};
 
-    public TRECQueryParser(String fileName, Analyzer analyzer) throws SAXException {
+    public TRECQueryParser(String fileName, Analyzer analyzer, boolean expansionFlag) throws SAXException, FileNotFoundException, Exception {
         this.fileName = fileName;
         this.analyzer = analyzer;
         buff = new StringBuffer();
         queries = new LinkedList<>();
         queryParser = new StandardQueryParser(analyzer);
+        this.expansionflag = expansionFlag;
+        if (this.expansionflag == true) {
+            expansionTerms = extractExpansionTerms();
+        }
     }
 
-    public StandardQueryParser getQueryParser() { return queryParser; }
-    
+    public StandardQueryParser getQueryParser() {
+        return queryParser;
+    }
+
     public void parse() throws Exception {
         SAXParserFactory saxParserFactory = SAXParserFactory.newInstance();
         saxParserFactory.setValidating(false);
@@ -59,44 +67,45 @@ public class TRECQueryParser extends DefaultHandler {
         saxParser.parse(fileName, this);
     }
 
-    public List<TRECQuery> getQueries() { return queries; }
-    
+    public List<TRECQuery> getQueries() {
+        return queries;
+    }
+
     @Override
     public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
         try {
             if (qName.equalsIgnoreCase("top")) {
                 query = new TRECQuery();
                 queries.add(query);
-            }
-            else
+            } else {
                 buff = new StringBuffer();
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
-        catch (Exception ex) { ex.printStackTrace(); }
     }
-    
 
-    public Query constructLuceneQueryObj(TRECQuery trecQuery) throws QueryNodeException {    
+    public Query constructLuceneQueryObj(TRECQuery trecQuery) throws QueryNodeException {
 
-		
-	String st[] = trecQuery.title.split("\\s+");
+        String st[] = trecQuery.title.split("\\s+");
         BooleanQuery query = new BooleanQuery();
         for (String s : st) {
-
+           
             Term term1 = new Term(TrecDocIndexer.ARTICLE_TITLE, s);
             //create the term query object
-            Query query1 = new TermQuery(term1);           
+            Query query1 = new TermQuery(term1);
             //query1.setBoost(1.2f);
             query.add(query1, BooleanClause.Occur.SHOULD);
         }
 
-	st = trecQuery.narr.split("\\s+");
+        st = trecQuery.narr.split("\\s+");
         for (String s : st) {
             Term term1 = new Term(TrecDocIndexer.ABSTRACT_TEXT, s);
             //create the term query object
             Query query1 = new TermQuery(term1);
             query.add(query1, BooleanClause.Occur.SHOULD);
         }
-	st = trecQuery.desc.split("\\s+");
+        st = trecQuery.desc.split("\\s+");
         for (String s : st) {
 
             Term term1 = new Term(TrecDocIndexer.MESH_HEADING, s);
@@ -105,7 +114,7 @@ public class TRECQueryParser extends DefaultHandler {
             query1.setBoost(.8f);
             query.add(query1, BooleanClause.Occur.SHOULD);
         }
-	st = trecQuery.desc.split("\\s+");
+        st = trecQuery.desc.split("\\s+");
         for (String s : st) {
 
             Term term1 = new Term(TrecDocIndexer.ABSTRACT_TEXT, s);
@@ -114,7 +123,7 @@ public class TRECQueryParser extends DefaultHandler {
             query1.setBoost(1.5f);
             query.add(query1, BooleanClause.Occur.SHOULD);
         }
-	st = trecQuery.title.split("\\s+");
+        st = trecQuery.title.split("\\s+");
         for (String s : st) {
 
             Term term1 = new Term(TrecDocIndexer.ABSTRACT_TEXT, s);
@@ -123,12 +132,12 @@ public class TRECQueryParser extends DefaultHandler {
             query1.setBoost(1.5f);
             query.add(query1, BooleanClause.Occur.SHOULD);
         }
-       
-	//System.out.println("The query is "+query);
-	return query;
+
+        //System.out.println("The query is "+query);
+        return query;
     }
-	
-	String analyze(String query, String stopFileName) throws Exception {
+
+    String analyze(String query, String stopFileName) throws Exception {
         StringBuffer buff = new StringBuffer();
         TokenStream stream = new EnglishAnalyzer(StopFilter.makeStopSet(buildStopwordList(stopFileName))).tokenStream("dummy", new StringReader(query));
         CharTermAttribute termAtt = stream.addAttribute(CharTermAttribute.class);
@@ -140,9 +149,10 @@ public class TRECQueryParser extends DefaultHandler {
         }
         stream.end();
         stream.close();
-       return buff.toString().trim();
+        return buff.toString().trim();
     }
-	public List<String> buildStopwordList(String stopwordFileName) throws FileNotFoundException, IOException {
+
+    public List<String> buildStopwordList(String stopwordFileName) throws FileNotFoundException, IOException {
         List<String> stopwords = new ArrayList();
         String stopFile = stopwordFileName;
         String line;
@@ -155,28 +165,79 @@ public class TRECQueryParser extends DefaultHandler {
         br.close();
         return stopwords;
     }
-    
+
     @Override
     public void endElement(String uri, String localName, String qName) throws SAXException {
         try {
-            if (qName.equalsIgnoreCase("title"))
-                query.title = analyze(buff.toString(),"stop.txt");            
-            else if (qName.equalsIgnoreCase("desc"))
-                query.desc = analyze(buff.toString(),"stop.txt");
-            else if (qName.equalsIgnoreCase("narr"))
-                query.narr = analyze(buff.toString(),"stop.txt");
-            else if (qName.equalsIgnoreCase("num"))
+            if (qName.equalsIgnoreCase("title")) {
+                query.title = analyze(buff.toString(), "stop.txt");
+            } else if (qName.equalsIgnoreCase("desc")) {
+                query.desc = analyze(buff.toString(), "stop.txt");
+            } else if (qName.equalsIgnoreCase("narr")) {
+                query.narr = analyze(buff.toString(), "stop.txt");
+            } else if (qName.equalsIgnoreCase("num")) {
                 query.id = buff.toString();
-            else if (qName.equalsIgnoreCase("top"))
-	
-                query.luceneQuery = constructLuceneQueryObj(query);            
+            } else if (qName.equalsIgnoreCase("top")) {
+                query.luceneQuery = constructLuceneQueryObj(query);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
-        catch (Exception ex) { ex.printStackTrace(); }
     }
+
+    public void addExpansionTerms() throws QueryNodeException {
+
+        ArrayList<TRECQuery> modifiedQueries = new ArrayList<>();
+        for (int i = 0; i < queries.size(); i++) {
+            TRECQuery tq = queries.get(i);
+            BooleanQuery b = (BooleanQuery) tq.luceneQuery;
+            String expansionString = expansionTerms.get(i);
+            String st[] = expansionString.split("\\s+");
+            for (String s : st) {
+                try{
+                Term term1 = new Term(TrecDocIndexer.ABSTRACT_TEXT, s);
+                //create the term query object
+                Query query1 = new TermQuery(term1);
+                query1.setBoost(0.2f);
+                b.add(query1, BooleanClause.Occur.SHOULD);
+                
+                }catch(Exception e){
+                }
+            }
+             tq.luceneQuery = b;
+            
+        }
+    }
+
+        @Override
+        public void characters
+        (char ch[], int start, int length) throws SAXException {
+            buff.append(new String(ch, start, length));
+        }
+
     
-    @Override
-    public void characters(char ch[], int start, int length) throws SAXException {
-        buff.append(new String(ch, start, length));
+
+    public ArrayList<String> extractExpansionTerms() throws FileNotFoundException, IOException, Exception {
+
+        FileReader fr = new FileReader(new File("Topics_2018_gene_exp(Created).csv"));
+        BufferedReader br = new BufferedReader(fr);
+
+        ArrayList<String> geneexpansion = new ArrayList<>();
+        String line = br.readLine();
+        line = br.readLine();
+        while (line != null) {
+            String st[] = line.split(",");
+            String expansionTerms = "";
+            for (int i = 1; i < st.length - 2; i++) {
+                String text = analyze(st[i], "stop.txt");
+                 String s1[] = text.split("\\s+");
+                 if(s1.length == 1)
+                expansionTerms = expansionTerms + " " + text;
+            }
+            geneexpansion.add(expansionTerms);
+            line = br.readLine();
+        }
+        return geneexpansion;
     }
 
     public static void main(String[] args) {
@@ -189,15 +250,15 @@ public class TRECQueryParser extends DefaultHandler {
             Properties prop = new Properties();
             prop.load(new FileReader(args[0]));
             String queryFile = prop.getProperty("query.file");
-            
-            TRECQueryParser parser = new TRECQueryParser(queryFile, new EnglishAnalyzer());
-            parser.parse();
+
+            TRECQueryParser parser = new TRECQueryParser(queryFile, new EnglishAnalyzer(), true);
+            parser.extractExpansionTerms();
+            /* parser.parse();
             for (TRECQuery q : parser.queries) {
                 System.out.println(q);
-            }
-        }
-        catch (Exception ex) {
+            }*/
+        } catch (Exception ex) {
             ex.printStackTrace();
         }
     }
-}    
+}

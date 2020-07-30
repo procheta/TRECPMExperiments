@@ -62,7 +62,7 @@ public class SampleIndexer {
 
     public List<TRECQuery> constructQueries() throws Exception {
         String queryFile = prop.getProperty("query.file");
-        TRECQueryParser parser = new TRECQueryParser(queryFile, analyzer);
+        TRECQueryParser parser = new TRECQueryParser(queryFile, analyzer, false);
         parser.parse();
         return parser.getQueries();
     }
