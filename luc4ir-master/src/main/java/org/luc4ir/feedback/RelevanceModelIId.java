@@ -217,16 +217,8 @@ public class RelevanceModelIId {
 
         Collections.sort(termStats);
 
-        for (Term t : origTerms) {
-            origQueryWordStrings.put(t.text(), t.text());
-            TermQuery tq = new TermQuery(t);
-            //+++POST_SIGIR review: Assigned weights according to RLM post QE
-            tq.setBoost(1-fbweight);
-            //    tq.setBoost((1-fbweight)/(float)origTerms.size());
-            //---POST_SIGIR review
-            ((BooleanQuery) expandedQuery.luceneQuery).add(tq, BooleanClause.Occur.SHOULD);
-        }
 
+        expandedQuery.luceneQuery= this.trecQuery.luceneQuery;
         int nTermsAdded = 0;
         for (RetrievedDocTermInfo selTerm : termStats) {
 

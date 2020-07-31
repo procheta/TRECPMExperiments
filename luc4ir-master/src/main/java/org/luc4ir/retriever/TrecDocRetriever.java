@@ -214,15 +214,15 @@ public class TrecDocRetriever {
             }
         }
 
-        postRLMQE = Boolean.parseBoolean(prop.getProperty("rlm.qe", "false"));
+        /*postRLMQE = Boolean.parseBoolean(prop.getProperty("rlm.qe", "false"));
         TopDocs reranked = fdbkModel.rerankDocs();
         if (!postRLMQE) {
             return reranked;
-        }
+        }*/
 
         // Post retrieval query expansion
         TRECQuery expandedQuery = fdbkModel.expandQuery();
-        System.out.println("Expanded qry: " + expandedQuery.getLuceneQueryObj());
+        //System.out.println("Expanded qry: " + expandedQuery.getLuceneQueryObj());
         // Reretrieve with expanded query
         TopScoreDocCollector collector = TopScoreDocCollector.create(numWanted);
         searcher.setSimilarity(new BM25Similarity(1, 0.7f));
