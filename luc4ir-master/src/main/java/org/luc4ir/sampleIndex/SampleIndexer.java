@@ -104,6 +104,7 @@ public class SampleIndexer {
     public static void main(String[] args) throws Exception {
 
         SampleIndexer si = new SampleIndexer("C:\\Users\\Procheta\\Downloads\\luc4ir-master\\src\\main\\java\\org\\luc4ir\\retriever\\init.properties");
+        si.createSampleIndex();
         si.createSampleIndex_v2();
     }
 }

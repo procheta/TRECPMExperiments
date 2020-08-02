@@ -22,6 +22,8 @@ import org.apache.lucene.index.*;
 import org.apache.lucene.search.*;
 import org.apache.lucene.search.similarities.*;
 import org.apache.lucene.store.*;
+import org.luc4ir.feedback.OneDimKDE;
+import org.luc4ir.feedback.TwoDimKDE;
 import org.luc4ir.trec.TRECQuery;
 import org.luc4ir.trec.TRECQueryParser;
 
@@ -79,8 +81,9 @@ public class TrecDocRetriever {
         String queryFile = prop.getProperty("query.file");
         TRECQueryParser parser = new TRECQueryParser(queryFile, indexer.getAnalyzer(), preretievalExpansion);
         parser.parse();
-        if(preretievalExpansion)
-               parser.addExpansionTerms();
+        if (preretievalExpansion) {
+            parser.addExpansionTerms();
+        }
         return parser.getQueries();
     }
 
@@ -170,11 +173,17 @@ public class TrecDocRetriever {
 
         List<TRECQuery> queries = constructQueries();
 
+        boolean toExpand = Boolean.parseBoolean(prop.getProperty("preretrieval.queryexpansion", "false"));
+        // Expand all queries
+        if (toExpand) {
+            NNQueryExpander nnQexpander = new NNQueryExpander(prop);
+            nnQexpander.expandQueriesWithNN(queries);
+        }
+
         for (TRECQuery query : queries) {
 
             // Print query
             //System.out.println("Executing query: " + query.getLuceneQueryObj());
-            
             // Retrieve results
             topDocs = retrieve(query);
 
@@ -197,10 +206,16 @@ public class TrecDocRetriever {
 
     public TopDocs applyFeedback(TRECQuery query, TopDocs topDocs) throws Exception {
         RelevanceModelIId fdbkModel;
+        
+        fdbkModel = kdeType.equals("uni")? new OneDimKDE(this, query, topDocs) :
+                kdeType.equals("bi")? new TwoDimKDE(this, query, topDocs) :
+                kdeType.equals("rlm_iid")? new RelevanceModelIId(this, query, topDocs) :
+                new RelevanceModelConditional(this, query, topDocs);
 
-        fdbkModel = new RelevanceModelConditional(this, query, topDocs);
+        //fdbkModel = new RelevanceModelConditional(this, query, topDocs);
         try {
-            fdbkModel.computeFdbkWeights();
+           // fdbkModel.computeFdbkWeights();
+           fdbkModel.computeKDE();
         } catch (Exception ex) {
             ex.printStackTrace();
             return topDocs;
@@ -219,7 +234,6 @@ public class TrecDocRetriever {
         if (!postRLMQE) {
             return reranked;
         }*/
-
         // Post retrieval query expansion
         TRECQuery expandedQuery = fdbkModel.expandQuery();
         //System.out.println("Expanded qry: " + expandedQuery.getLuceneQueryObj());

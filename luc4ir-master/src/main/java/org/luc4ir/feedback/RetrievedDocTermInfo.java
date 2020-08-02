@@ -5,6 +5,8 @@
  */
 package org.luc4ir.feedback;
 
+import org.luc4ir.wvec.WordVec;
+
 /**
  *
  * @author Debasis
@@ -13,10 +15,20 @@ public class RetrievedDocTermInfo implements Comparable<RetrievedDocTermInfo> {
     String term;
     int tf;
     int df;
-    float wt;   // weight of this term, e.g. the P(w|R) value    
+    float wt;   // weight of this term, e.g. the P(w|R) value 
+    WordVec wvec;
 
     public RetrievedDocTermInfo(String term) {
         this.term = term;
+    }
+    
+     public RetrievedDocTermInfo(WordVec wvec) {
+        this.wvec = wvec;
+    }
+     
+    public RetrievedDocTermInfo(WordVec wvec, int tf) {
+        this.wvec = wvec;
+        this.tf = tf;
     }
     
     public RetrievedDocTermInfo(String term, int tf) {

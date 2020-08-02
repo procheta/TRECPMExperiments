@@ -25,6 +25,8 @@ import org.apache.lucene.search.TopDocs;
 import org.luc4ir.indexing.TrecDocIndexer;
 import org.luc4ir.trec.TRECQuery;
 import org.luc4ir.retriever.TrecDocRetriever;
+import org.luc4ir.wvec.WordVec;
+import org.luc4ir.wvec.WordVecs;
 
 /**
  *
@@ -50,6 +52,9 @@ public class RelevanceModelIId {
     int nterms;
     float fbweight;
     IndexReader reader;
+    WordVecs wvecs;
+    QueryWordVecs qwvecs;
+    QueryVecComposer composer;
     static final float TERM_SEL_DF_THRESH = 0.8f;
 
     public RelevanceModelIId(TrecDocRetriever retriever, TRECQuery trecQuery, TopDocs topDocs) throws Exception {
@@ -62,6 +67,11 @@ public class RelevanceModelIId {
 
         nterms = Integer.parseInt(prop.getProperty("rlm.qe.nterms", "10"));
         fbweight = Float.parseFloat(prop.getProperty("rlm.qe.newterms.wt", "0.2"));
+
+        if (wvecs == null) {
+            wvecs = new WordVecs(prop);
+        }
+        composer = new QueryVecComposer(trecQuery, wvecs, prop);        
     }
 
     public RetrievedDocsTermStats getRetrievedDocsTermStats() {
@@ -105,6 +115,44 @@ public class RelevanceModelIId {
                 RetrievedDocTermInfo qtermInfo = retrievedDocsTermStats.getTermStats(qTerm.toString());
                 if (qtermInfo == null) {
                     System.err.println("No KDE for query term: " + qTerm.toString());
+                    continue;
+                }
+                p_q = qtermInfo.tf / (float) retrievedDocsTermStats.sumTf; //mixTfIdf(qtermInfo); //
+
+                total_p_q += Math.log(1 + p_q);
+            }
+            w.wt = p_w * (float) Math.exp(total_p_q - 1);
+        }
+    }
+
+    public void prepareQueryVector() {
+        if (qwvecs == null) {
+            qwvecs = composer.getQueryWordVecs();
+        }
+    }
+
+    public void computeKDE() throws Exception {
+        float p_q;
+        float p_w;
+
+        buildTermStats();
+        prepareQueryVector();
+
+        /* For each w \in V (vocab of top docs),
+         * compute f(w) = \sum_{q \in qwvecs} K(w,q) */
+        for (Map.Entry<String, RetrievedDocTermInfo> e : retrievedDocsTermStats.termStats.entrySet()) {
+            float total_p_q = 0;
+            RetrievedDocTermInfo w = e.getValue();
+            p_w = mixTfIdf(w);
+
+            for (WordVec qwvec : qwvecs.getVecs()) {
+                if (qwvec == null) {
+                    continue; // a very rare case where a query term is OOV
+                }
+                // Get query term frequency
+                RetrievedDocTermInfo qtermInfo = retrievedDocsTermStats.getTermStats(qwvec);
+                if (qtermInfo == null) {
+                    System.err.println("No KDE for query term: " + qwvec.getWord());
                     continue;
                 }
                 p_q = qtermInfo.tf / (float) retrievedDocsTermStats.sumTf; //mixTfIdf(qtermInfo); //
@@ -196,12 +244,14 @@ public class RelevanceModelIId {
         List<RetrievedDocTermInfo> termStats = new ArrayList<>();
         for (Map.Entry<String, RetrievedDocTermInfo> e : retrievedDocsTermStats.termStats.entrySet()) {
             RetrievedDocTermInfo w = e.getValue();
-            double docfreq= reader.docFreq(new Term(TrecDocIndexer.ABSTRACT_TEXT, w.getTerm()));
-            if(docfreq == 0)
-                docfreq= reader.docFreq(new Term(TrecDocIndexer.MESH_HEADING, w.getTerm()));
-            if(docfreq == 0)
-                docfreq= reader.docFreq(new Term(TrecDocIndexer.ARTICLE_TITLE, w.getTerm()));
-            
+            double docfreq = reader.docFreq(new Term(TrecDocIndexer.ABSTRACT_TEXT, w.getTerm()));
+            if (docfreq == 0) {
+                docfreq = reader.docFreq(new Term(TrecDocIndexer.MESH_HEADING, w.getTerm()));
+            }
+            if (docfreq == 0) {
+                docfreq = reader.docFreq(new Term(TrecDocIndexer.ARTICLE_TITLE, w.getTerm()));
+            }
+
             w.wt = w.wt
                     * (float) Math.log(
                             reader.numDocs() / (float) docfreq);
@@ -217,8 +267,7 @@ public class RelevanceModelIId {
 
         Collections.sort(termStats);
 
-
-        expandedQuery.luceneQuery= this.trecQuery.luceneQuery;
+        expandedQuery.luceneQuery = this.trecQuery.luceneQuery;
         int nTermsAdded = 0;
         for (RetrievedDocTermInfo selTerm : termStats) {
 
@@ -227,20 +276,19 @@ public class RelevanceModelIId {
                 continue;
             }
 
-            
             TermQuery tq = new TermQuery(new Term(TrecDocIndexer.ABSTRACT_TEXT, thisTerm));
             ((BooleanQuery) expandedQuery.luceneQuery).add(tq, BooleanClause.Occur.SHOULD);
 
             tq.setBoost(fbweight * selTerm.wt);
-            
+
             tq = new TermQuery(new Term(TrecDocIndexer.MESH_HEADING, thisTerm));
             ((BooleanQuery) expandedQuery.luceneQuery).add(tq, BooleanClause.Occur.SHOULD);
             tq.setBoost(fbweight * selTerm.wt);
-            
+
             tq = new TermQuery(new Term(TrecDocIndexer.CHEMICAL_LIST, thisTerm));
             ((BooleanQuery) expandedQuery.luceneQuery).add(tq, BooleanClause.Occur.SHOULD);
             tq.setBoost(fbweight * selTerm.wt);
-            
+
             tq = new TermQuery(new Term(TrecDocIndexer.ARTICLE_TITLE, thisTerm));
             ((BooleanQuery) expandedQuery.luceneQuery).add(tq, BooleanClause.Occur.SHOULD);
             tq.setBoost(fbweight * selTerm.wt);

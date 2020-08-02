@@ -6,6 +6,7 @@
 package org.luc4ir.feedback;
 
 import java.util.HashMap;
+import org.luc4ir.wvec.WordVec;
 
 /**
  *
@@ -35,4 +36,30 @@ public class PerDocTermVector {
     RetrievedDocTermInfo getTermStats(String qTerm) {
         return this.perDocStats.get(qTerm);
     }
+    
+    RetrievedDocTermInfo getTermStats(WordVec wv) {
+        RetrievedDocTermInfo tInfo;
+        String qTerm = wv.getWord();
+        if (qTerm == null)
+            return null;
+        
+        // Check if this word is a composed vector
+        if (!wv.isComposed()) {
+            tInfo = this.perDocStats.get(qTerm);
+            return tInfo;
+        }
+            
+        // Split up the composed into it's constituents
+        String[] qTerms = qTerm.split(WordVec.COMPOSING_DELIM);
+        RetrievedDocTermInfo firstTerm = this.perDocStats.get(qTerms[0]);
+        if (firstTerm == null)
+            return null;
+        RetrievedDocTermInfo secondTerm = this.perDocStats.get(qTerms[1]);
+        if (secondTerm == null)
+            return null;
+        tInfo = new RetrievedDocTermInfo(wv);
+        tInfo.tf = firstTerm.tf * secondTerm.tf;
+        
+        return tInfo;
+    }    
 }
