@@ -62,7 +62,7 @@ public class NNQueryExpander {
             System.out.println("Loading wordvecs in memory...");
             wvecs = new WordVecs(prop);
             System.out.println("Loaded wordvecs in memory...");
-            numTerms = Integer.parseInt(prop.getProperty("queryexpansion.nterms"));
+            numTerms = Integer.parseInt(prop.getProperty("rlm.qe.nterms"));
         }
         catch (Exception ex) { ex.printStackTrace(); }        
     }
@@ -90,7 +90,6 @@ public class NNQueryExpander {
         
         // Initialize a hashmap to store the nn origTerms
         HashMap<String, NNQueryWord> nnMap = new HashMap<>();
-        
         // Iterate over the original origTerms to pairwise compose them
         for (int i = 0; i < termArray.length-1; i++) {
             String thisTerm = termArray[i].text();

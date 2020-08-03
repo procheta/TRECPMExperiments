@@ -191,9 +191,10 @@ public class TrecDocRetriever {
             if (Boolean.parseBoolean(prop.getProperty("feedback")) && topDocs.scoreDocs.length > 0) {
                 topDocs = applyFeedback(query, topDocs);
             }
-
+            
             // Save results
             saveRetrievedTuples(fw, query, topDocs);
+            break;
         }
 
         fw.close();
@@ -220,7 +221,6 @@ public class TrecDocRetriever {
             ex.printStackTrace();
             return topDocs;
         }
-
         if (Boolean.parseBoolean(prop.getProperty("clarity_compute", "false"))) {
             if (prop.getProperty("clarity.collmodel", "global").equals("global")) {
                 System.out.println("Clarity: " + fdbkModel.getQueryClarity(reader));
@@ -235,6 +235,7 @@ public class TrecDocRetriever {
             return reranked;
         }*/
         // Post retrieval query expansion
+       
         TRECQuery expandedQuery = fdbkModel.expandQuery();
         //System.out.println("Expanded qry: " + expandedQuery.getLuceneQueryObj());
         // Reretrieve with expanded query

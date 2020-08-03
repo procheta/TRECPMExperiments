@@ -116,6 +116,7 @@ public class OneDimKDE extends RelevanceModelIId {
         /* For each w \in V (vocab of top docs),
          * compute f(w) = \sum_{q \in qwvecs} K(w,q) */
         for (Map.Entry<String, RetrievedDocTermInfo> e : retrievedDocsTermStats.termStats.entrySet()) {
+            
             RetrievedDocTermInfo w = e.getValue();
             f_w = 0;
             p_w = mixTfIdf(w);
@@ -123,11 +124,10 @@ public class OneDimKDE extends RelevanceModelIId {
             for (WordVec qwvec : qwvecs.getVecs()) {
                 if (qwvec == null)
                     continue; // a very rare case where a query term is OOV
-                
                 // Get query term frequency
                 RetrievedDocTermInfo qtermInfo = retrievedDocsTermStats.getTermStats(qwvec);
                 if (qtermInfo == null) {
-                    System.err.println("No KDE for query term: " + qwvec.getWord());
+                    //System.err.println("No KDE for query term: " + qwvec.getWord());
                     continue;
                 }
                 if (qtermInfo.wvec.isComposed()) {

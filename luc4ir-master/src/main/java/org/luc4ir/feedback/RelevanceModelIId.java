@@ -114,7 +114,7 @@ public class RelevanceModelIId {
                 // Get query term frequency
                 RetrievedDocTermInfo qtermInfo = retrievedDocsTermStats.getTermStats(qTerm.toString());
                 if (qtermInfo == null) {
-                    System.err.println("No KDE for query term: " + qTerm.toString());
+                    //System.err.println("No KDE for query term: " + qTerm.toString());
                     continue;
                 }
                 p_q = qtermInfo.tf / (float) retrievedDocsTermStats.sumTf; //mixTfIdf(qtermInfo); //
@@ -148,11 +148,13 @@ public class RelevanceModelIId {
             for (WordVec qwvec : qwvecs.getVecs()) {
                 if (qwvec == null) {
                     continue; // a very rare case where a query term is OOV
+                }else{
+                    System.out.println("KDE for "+ qwvec.getWord());
                 }
                 // Get query term frequency
                 RetrievedDocTermInfo qtermInfo = retrievedDocsTermStats.getTermStats(qwvec);
                 if (qtermInfo == null) {
-                    System.err.println("No KDE for query term: " + qwvec.getWord());
+                    //System.err.println("No KDE for query term: " + qwvec.getWord());
                     continue;
                 }
                 p_q = qtermInfo.tf / (float) retrievedDocsTermStats.sumTf; //mixTfIdf(qtermInfo); //
