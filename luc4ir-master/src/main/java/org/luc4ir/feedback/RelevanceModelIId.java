@@ -149,7 +149,7 @@ public class RelevanceModelIId {
                 if (qwvec == null) {
                     continue; // a very rare case where a query term is OOV
                 }else{
-                    System.out.println("KDE for "+ qwvec.getWord());
+                    //System.out.println("KDE for "+ qwvec.getWord());
                 }
                 // Get query term frequency
                 RetrievedDocTermInfo qtermInfo = retrievedDocsTermStats.getTermStats(qwvec);

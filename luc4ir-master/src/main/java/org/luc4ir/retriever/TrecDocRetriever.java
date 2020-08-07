@@ -79,7 +79,7 @@ public class TrecDocRetriever {
 
     public List<TRECQuery> constructQueries() throws Exception {
         String queryFile = prop.getProperty("query.file");
-        TRECQueryParser parser = new TRECQueryParser(queryFile, indexer.getAnalyzer(), preretievalExpansion);
+        TRECQueryParser parser = new TRECQueryParser(queryFile, indexer.getAnalyzer(), preretievalExpansion, prop.getProperty("queryMode"), prop.getProperty("weigted"));
         parser.parse();
         if (preretievalExpansion) {
             parser.addExpansionTerms();
@@ -191,7 +191,7 @@ public class TrecDocRetriever {
             if (Boolean.parseBoolean(prop.getProperty("feedback")) && topDocs.scoreDocs.length > 0) {
                 topDocs = applyFeedback(query, topDocs);
             }
-            
+
             // Save results
             saveRetrievedTuples(fw, query, topDocs);
             break;
@@ -207,16 +207,19 @@ public class TrecDocRetriever {
 
     public TopDocs applyFeedback(TRECQuery query, TopDocs topDocs) throws Exception {
         RelevanceModelIId fdbkModel;
-        
-        fdbkModel = kdeType.equals("uni")? new OneDimKDE(this, query, topDocs) :
-                kdeType.equals("bi")? new TwoDimKDE(this, query, topDocs) :
-                kdeType.equals("rlm_iid")? new RelevanceModelIId(this, query, topDocs) :
-                new RelevanceModelConditional(this, query, topDocs);
+
+        fdbkModel = kdeType.equals("uni") ? new OneDimKDE(this, query, topDocs)
+                : kdeType.equals("bi") ? new TwoDimKDE(this, query, topDocs)
+                : kdeType.equals("rlm_iid") ? new RelevanceModelIId(this, query, topDocs)
+                : new RelevanceModelConditional(this, query, topDocs);
 
         //fdbkModel = new RelevanceModelConditional(this, query, topDocs);
         try {
-           // fdbkModel.computeFdbkWeights();
-           fdbkModel.computeKDE();
+            if (kdeType.equals("rlm_conditional")) {
+                fdbkModel.computeFdbkWeights();
+            } else {
+                fdbkModel.computeKDE();
+            }
         } catch (Exception ex) {
             ex.printStackTrace();
             return topDocs;
@@ -235,7 +238,6 @@ public class TrecDocRetriever {
             return reranked;
         }*/
         // Post retrieval query expansion
-       
         TRECQuery expandedQuery = fdbkModel.expandQuery();
         //System.out.println("Expanded qry: " + expandedQuery.getLuceneQueryObj());
         // Reretrieve with expanded query

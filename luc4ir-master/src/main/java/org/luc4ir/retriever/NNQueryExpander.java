@@ -48,11 +48,13 @@ public class NNQueryExpander {
 
     WordVecs wvecs;
     int numTerms;
+    String weighted;
     
     public NNQueryExpander(TrecDocIndexer indexer) {
         try {
             wvecs = new WordVecs(indexer.getProperties());
             numTerms = Integer.parseInt(indexer.getProperties().getProperty("kde.queryexpansion"));
+            weighted = indexer.getProperties().getProperty("weighted");
         }
         catch (Exception ex) { ex.printStackTrace(); }
     }
@@ -106,7 +108,7 @@ public class NNQueryExpander {
             System.out.println("NNs of composed words: " + thisTermVec.getWord() + "+" + nextTermVec.getWord());
             for (WordVec nnvec : nnvecs) {
                 String thisWord = nnvec.getWord();
-                System.out.println("NN (" + nnIndex + "): " + thisWord + " (" + nnvec.getQuerySim() + ")");
+               // System.out.println("NN (" + nnIndex + "): " + thisWord + " (" + nnvec.getQuerySim() + ")");
                 if (origTermStrings.contains(thisWord))
                     continue;
                 
@@ -123,7 +125,7 @@ public class NNQueryExpander {
         List<NNQueryWord> nnqws = new ArrayList<>(nnMap.size());
         for (Map.Entry<String, NNQueryWord> e : nnMap.entrySet()) {
             nnqws.add(e.getValue());
-            System.out.println("Total sim (" + e.getKey() + ") = " + e.getValue().avgSim);
+           // System.out.println("Total sim (" + e.getKey() + ") = " + e.getValue().avgSim);
         }
         Collections.sort(nnqws);
         nnqws = nnqws.subList(0, Math.min(nnqws.size(), numTerms));
@@ -131,7 +133,10 @@ public class NNQueryExpander {
         // Now append the origTerms of this hashmap to the original query
         for (NNQueryWord nnqw : nnqws) {
             TermQuery tq = new TermQuery(
-                   new Term(TrecDocIndexer.FIELD_ANALYZED_CONTENT, nnqw.wvec.getWord()));
+                   new Term(TrecDocIndexer.ALL_STR, nnqw.wvec.getWord()));
+            if(weighted.equals("true")){
+                tq.setBoost(0.5f);
+            }
             ((BooleanQuery)luceneQry).add(tq, BooleanClause.Occur.SHOULD);
         }
     }
