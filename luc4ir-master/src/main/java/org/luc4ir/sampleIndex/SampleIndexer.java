@@ -40,6 +40,7 @@ public class SampleIndexer {
     Analyzer analyzer;
     int numWanted;
     IndexWriter writer;
+    Boolean preretievalExpansion;
 
     public SampleIndexer(String propFile) throws IOException, Exception {
 
@@ -57,12 +58,13 @@ public class SampleIndexer {
         indexPath = prop.getProperty("sampleIndex");
         indexDir = new File(indexPath);
         writer = new IndexWriter(FSDirectory.open(indexDir.toPath()), iwcfg);
+        preretievalExpansion = Boolean.parseBoolean(prop.getProperty("preretievalExpansion", "false"));
 
     }
 
     public List<TRECQuery> constructQueries() throws Exception {
         String queryFile = prop.getProperty("query.file");
-        TRECQueryParser parser = new TRECQueryParser(queryFile, analyzer, false);
+        TRECQueryParser parser = new TRECQueryParser(queryFile, analyzer, preretievalExpansion, prop.getProperty("queryMode"), prop.getProperty("weighted"));
         parser.parse();
         return parser.getQueries();
     }
