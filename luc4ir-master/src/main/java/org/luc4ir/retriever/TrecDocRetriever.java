@@ -79,7 +79,8 @@ public class TrecDocRetriever {
 
     public List<TRECQuery> constructQueries() throws Exception {
         String queryFile = prop.getProperty("query.file");
-        TRECQueryParser parser = new TRECQueryParser(queryFile, indexer.getAnalyzer(), preretievalExpansion, prop.getProperty("queryMode"), prop.getProperty("weigted"));
+        System.out.println("weighted " +prop.getProperty("weigted"));
+        TRECQueryParser parser = new TRECQueryParser(queryFile, indexer.getAnalyzer(), preretievalExpansion, prop.getProperty("queryMode"), prop.getProperty("weighted"));
         parser.parse();
         if (preretievalExpansion) {
             parser.addExpansionTerms();
@@ -194,7 +195,6 @@ public class TrecDocRetriever {
 
             // Save results
             saveRetrievedTuples(fw, query, topDocs);
-            break;
         }
 
         fw.close();
@@ -238,7 +238,7 @@ public class TrecDocRetriever {
             return reranked;
         }*/
         // Post retrieval query expansion
-        TRECQuery expandedQuery = fdbkModel.expandQuery();
+        TRECQuery expandedQuery = fdbkModel.expandQuery(prop.getProperty("queryMode"));
         //System.out.println("Expanded qry: " + expandedQuery.getLuceneQueryObj());
         // Reretrieve with expanded query
         TopScoreDocCollector collector = TopScoreDocCollector.create(numWanted);

@@ -71,7 +71,7 @@ public class RelevanceModelIId {
         if (wvecs == null) {
             wvecs = new WordVecs(prop);
         }
-        composer = new QueryVecComposer(trecQuery, wvecs, prop);        
+        composer = new QueryVecComposer(trecQuery, wvecs, prop);
     }
 
     public RetrievedDocsTermStats getRetrievedDocsTermStats() {
@@ -148,7 +148,7 @@ public class RelevanceModelIId {
             for (WordVec qwvec : qwvecs.getVecs()) {
                 if (qwvec == null) {
                     continue; // a very rare case where a query term is OOV
-                }else{
+                } else {
                     //System.out.println("KDE for "+ qwvec.getWord());
                 }
                 // Get query term frequency
@@ -227,7 +227,7 @@ public class RelevanceModelIId {
 
     // Implement post-RLM query expansion. Set the term weights
     // according to the values of f(w).
-    public TRECQuery expandQuery() throws Exception {
+    public TRECQuery expandQuery(String queryMode) throws Exception {
 
         // The calling sequence has to make sure that the top docs are already
         // reranked by KL-div
@@ -246,12 +246,17 @@ public class RelevanceModelIId {
         List<RetrievedDocTermInfo> termStats = new ArrayList<>();
         for (Map.Entry<String, RetrievedDocTermInfo> e : retrievedDocsTermStats.termStats.entrySet()) {
             RetrievedDocTermInfo w = e.getValue();
-            double docfreq = reader.docFreq(new Term(TrecDocIndexer.ABSTRACT_TEXT, w.getTerm()));
-            if (docfreq == 0) {
-                docfreq = reader.docFreq(new Term(TrecDocIndexer.MESH_HEADING, w.getTerm()));
-            }
-            if (docfreq == 0) {
-                docfreq = reader.docFreq(new Term(TrecDocIndexer.ARTICLE_TITLE, w.getTerm()));
+            double docfreq = reader.docFreq(new Term(TrecDocIndexer.ALL_STR, w.getTerm()));
+            if (queryMode.equals("flat")) {
+                docfreq = reader.docFreq(new Term(TrecDocIndexer.ALL_STR, w.getTerm()));
+            } else {
+                docfreq = reader.docFreq(new Term(TrecDocIndexer.ABSTRACT_TEXT, w.getTerm()));
+                if (docfreq == 0) {
+                    docfreq = reader.docFreq(new Term(TrecDocIndexer.MESH_HEADING, w.getTerm()));
+                }
+                if (docfreq == 0) {
+                    docfreq = reader.docFreq(new Term(TrecDocIndexer.ARTICLE_TITLE, w.getTerm()));
+                }
             }
 
             w.wt = w.wt
@@ -278,28 +283,34 @@ public class RelevanceModelIId {
                 continue;
             }
 
-            TermQuery tq = new TermQuery(new Term(TrecDocIndexer.ABSTRACT_TEXT, thisTerm));
-            ((BooleanQuery) expandedQuery.luceneQuery).add(tq, BooleanClause.Occur.SHOULD);
+            if (queryMode.equals("flat")) {
+                TermQuery tq = new TermQuery(new Term(TrecDocIndexer.ALL_STR, thisTerm));
+                ((BooleanQuery) expandedQuery.luceneQuery).add(tq, BooleanClause.Occur.SHOULD);
+                tq.setBoost(fbweight * selTerm.wt);
+            } else {
+                TermQuery tq = new TermQuery(new Term(TrecDocIndexer.ABSTRACT_TEXT, thisTerm));
+                ((BooleanQuery) expandedQuery.luceneQuery).add(tq, BooleanClause.Occur.SHOULD);
 
-            tq.setBoost(fbweight * selTerm.wt);
+                tq.setBoost(fbweight * selTerm.wt);
 
-            tq = new TermQuery(new Term(TrecDocIndexer.MESH_HEADING, thisTerm));
-            ((BooleanQuery) expandedQuery.luceneQuery).add(tq, BooleanClause.Occur.SHOULD);
-            tq.setBoost(fbweight * selTerm.wt);
+                tq = new TermQuery(new Term(TrecDocIndexer.MESH_HEADING, thisTerm));
+                ((BooleanQuery) expandedQuery.luceneQuery).add(tq, BooleanClause.Occur.SHOULD);
+                tq.setBoost(fbweight * selTerm.wt);
 
-            tq = new TermQuery(new Term(TrecDocIndexer.CHEMICAL_LIST, thisTerm));
-            ((BooleanQuery) expandedQuery.luceneQuery).add(tq, BooleanClause.Occur.SHOULD);
-            tq.setBoost(fbweight * selTerm.wt);
+                tq = new TermQuery(new Term(TrecDocIndexer.CHEMICAL_LIST, thisTerm));
+                ((BooleanQuery) expandedQuery.luceneQuery).add(tq, BooleanClause.Occur.SHOULD);
+                tq.setBoost(fbweight * selTerm.wt);
 
-            tq = new TermQuery(new Term(TrecDocIndexer.ARTICLE_TITLE, thisTerm));
-            ((BooleanQuery) expandedQuery.luceneQuery).add(tq, BooleanClause.Occur.SHOULD);
-            tq.setBoost(fbweight * selTerm.wt);
+                tq = new TermQuery(new Term(TrecDocIndexer.ARTICLE_TITLE, thisTerm));
+                ((BooleanQuery) expandedQuery.luceneQuery).add(tq, BooleanClause.Occur.SHOULD);
+                tq.setBoost(fbweight * selTerm.wt);
+            }
+
             //+++POST_SIGIR review: Assigned weights according to RLM post QE
             //tq.setBoost(fbweight);
             //tq.setBoost(fbweight*selTerm.wt);
             //tq.setBoost(selTerm.wt);
             //---POST_SIGIR review
-
             nTermsAdded++;
             if (nTermsAdded >= nterms) {
                 break;
