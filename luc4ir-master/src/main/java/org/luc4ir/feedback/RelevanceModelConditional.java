@@ -21,11 +21,11 @@ public class RelevanceModelConditional extends RelevanceModelIId {
     }
     
     @Override
-    public void computeFdbkWeights() throws Exception {
+    public void computeFdbkWeights(String retrieveMode) throws Exception {
         float p_w;
         float this_wt; // phi(q,w)
         
-        buildTermStats();
+        buildTermStats(retrieveMode);
         
         int docsSeen = 0;
 

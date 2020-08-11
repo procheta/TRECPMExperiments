@@ -52,11 +52,11 @@ public class RetrievedDocsTermStats {
         return termStats;
     }
 
-    public void buildAllStats() throws Exception {
+    public void buildAllStats(String retrieveMode) throws Exception {
         int rank = 0;
         for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
             int docId = scoreDoc.doc;
-            docTermVecs.add(buildStatsForSingleDoc(docId, rank, scoreDoc.score));
+            docTermVecs.add(buildStatsForSingleDoc(docId, rank, scoreDoc.score, retrieveMode));
             rank++;
         }
     }
@@ -64,40 +64,42 @@ public class RetrievedDocsTermStats {
     RetrievedDocTermInfo getTermStats(String qTerm) {
         return this.termStats.get(qTerm);
     }
-    
-        RetrievedDocTermInfo getTermStats(WordVec wv) {
+
+    RetrievedDocTermInfo getTermStats(WordVec wv) {
         RetrievedDocTermInfo tInfo;
         String qTerm = wv.getWord();
-        if (qTerm == null)
+        if (qTerm == null) {
             return null;
-        
+        }
+
         // Check if this word is a composed vector
         if (!wv.isComposed()) {
             tInfo = this.termStats.get(qTerm);
             return tInfo;
         }
-            
+
         // Split up the composed into it's constituents
         String[] qTerms = qTerm.split(WordVec.COMPOSING_DELIM);
         RetrievedDocTermInfo firstTerm = this.termStats.get(qTerms[0]);
-        if (firstTerm == null)
+        if (firstTerm == null) {
             return null;
+        }
         RetrievedDocTermInfo secondTerm = this.termStats.get(qTerms[1]);
-        if (secondTerm == null)
+        if (secondTerm == null) {
             return null;
+        }
         tInfo = new RetrievedDocTermInfo(wv);
         tInfo.tf = firstTerm.tf * secondTerm.tf;
-        
+
         return tInfo;
     }
-    
-    
-    public void normalizefunction(TermsEnum termsEnum, PerDocTermVector docTermVector, float sim, int rank) throws IOException{
-         BytesRef term;
-         String termText;
-         RetrievedDocTermInfo trmInfo;
-         int tf;
-          while ((term = termsEnum.next()) != null) { // explore the terms for this field
+
+    public void normalizefunction(TermsEnum termsEnum, PerDocTermVector docTermVector, float sim, int rank) throws IOException {
+        BytesRef term;
+        String termText;
+        RetrievedDocTermInfo trmInfo;
+        int tf;
+        while ((term = termsEnum.next()) != null) { // explore the terms for this field
             termText = term.utf8ToString();
             tf = (int) termsEnum.totalTermFreq();
 
@@ -120,10 +122,10 @@ public class RetrievedDocsTermStats {
             sumTf += tf;
             sumSim += sim;
         }
-        
+
     }
 
-    PerDocTermVector buildStatsForSingleDoc(int docId, int rank, float sim) throws Exception {
+    PerDocTermVector buildStatsForSingleDoc(int docId, int rank, float sim, String queryMode) throws Exception {
         String termText;
         BytesRef term;
         Terms tfvector;
@@ -140,27 +142,27 @@ public class RetrievedDocsTermStats {
             termsEnum = tfvector.iterator(null); // access the terms for this field
             normalizefunction(termsEnum, docTermVector, sim, rank);
         }*/
-        
-        tfvector = reader.getTermVector(docId, TrecDocIndexer.ABSTRACT_TEXT);
-        if (tfvector != null && tfvector.size() != 0) {
-            termsEnum = tfvector.iterator(null); // access the terms for this field
-            normalizefunction(termsEnum, docTermVector, sim, rank);
+        if (queryMode.equals("flat")) {
+            tfvector = reader.getTermVector(docId, TrecDocIndexer.ALL_STR);
+            if (tfvector != null && tfvector.size() != 0) {
+                termsEnum = tfvector.iterator(null); // access the terms for this field
+                normalizefunction(termsEnum, docTermVector, sim, rank);
+            }
+
+        } else {
+            tfvector = reader.getTermVector(docId, TrecDocIndexer.ABSTRACT_TEXT);
+            if (tfvector != null && tfvector.size() != 0) {
+                termsEnum = tfvector.iterator(null); // access the terms for this field
+                normalizefunction(termsEnum, docTermVector, sim, rank);
+            }
+
+            tfvector = reader.getTermVector(docId, TrecDocIndexer.MESH_HEADING);
+            if (tfvector != null && tfvector.size() != 0) {
+                termsEnum = tfvector.iterator(null); // access the terms for this field
+                normalizefunction(termsEnum, docTermVector, sim, rank);
+            }
         }
-        
-        tfvector = reader.getTermVector(docId, TrecDocIndexer.MESH_HEADING);
-        if (tfvector != null && tfvector.size() != 0) {
-            termsEnum = tfvector.iterator(null); // access the terms for this field
-            normalizefunction(termsEnum, docTermVector, sim, rank);
-        }
-       /* tfvector = reader.getTermVector(docId, TrecDocIndexer.CHEMICAL_LIST);
-        if (tfvector != null && tfvector.size() != 0) {
-            termsEnum = tfvector.iterator(null); // access the terms for this field
-            normalizefunction(termsEnum, docTermVector, sim, rank);
-        }*/
-        
-        
-        
-        
+
         return docTermVector;
     }
 }

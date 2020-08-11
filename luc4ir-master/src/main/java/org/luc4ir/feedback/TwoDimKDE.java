@@ -22,13 +22,13 @@ public class TwoDimKDE extends OneDimKDE {
     }
 
     @Override
-    public void computeKDE() throws Exception {
+    public void computeKDE(String retrieveMode) throws Exception {
         float f_w; // KDE estimation for term w
         float p_q; // KDE weight, P(q)
         float p_w;
         float this_wt; // phi(q,w)
         
-        buildTermStats();
+        buildTermStats(retrieveMode);
         prepareQueryVector();
         
         int docsSeen = 0;

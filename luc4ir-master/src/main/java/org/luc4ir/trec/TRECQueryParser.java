@@ -129,7 +129,7 @@ public class TRECQueryParser extends DefaultHandler {
             //create the term query object
             Query query1 = new TermQuery(term1);
             if (weighted.equals("true")) {
-                query1.setBoost(1.2f);
+                query1.setBoost(.2f);
             }
             query.add(query1, BooleanClause.Occur.SHOULD);
         }
@@ -140,7 +140,7 @@ public class TRECQueryParser extends DefaultHandler {
             //create the term query object
             Query query1 = new TermQuery(term1);
             if (weighted.equals("true")) {
-                query1.setBoost(.8f);
+                query1.setBoost(.1f);
             }
             query.add(query1, BooleanClause.Occur.SHOULD);
         }
@@ -151,7 +151,7 @@ public class TRECQueryParser extends DefaultHandler {
             //create the term query object
             Query query1 = new TermQuery(term1);
             if (weighted.equals("true")) {
-                query1.setBoost(.8f);
+                query1.setBoost(.1f);
             }
             query.add(query1, BooleanClause.Occur.SHOULD);
         }
@@ -162,7 +162,7 @@ public class TRECQueryParser extends DefaultHandler {
             //create the term query object
             Query query1 = new TermQuery(term1);
             if (weighted.equals("true")) {
-                query1.setBoost(1.5f);
+                query1.setBoost(.3f);
             }
             query.add(query1, BooleanClause.Occur.SHOULD);
         }
@@ -173,7 +173,8 @@ public class TRECQueryParser extends DefaultHandler {
             //create the term query object
             Query query1 = new TermQuery(term1);
             if (weighted.equals("true")) {
-                query1.setBoost(1.5f);
+               query1.setBoost(.3f);
+           
             }
             query.add(query1, BooleanClause.Occur.SHOULD);
         }
@@ -250,11 +251,13 @@ public class TRECQueryParser extends DefaultHandler {
             String st[] = expansionString.split("\\s+");
             for (String s : st) {
                 try {
-                    Term term1 = new Term(TrecDocIndexer.ABSTRACT_TEXT, s);
+                    //Term term1 = new Term(TrecDocIndexer.ABSTRACT_TEXT, s);
+                    Term term1 = new Term(TrecDocIndexer.ALL_STR, s);
+                    
                     //create the term query object
                     Query query1 = new TermQuery(term1);
                     if (weighted.equals("true")) {
-                        query1.setBoost(0.2f);
+                        query1.setBoost(0.05f);
                     }
                     b.add(query1, BooleanClause.Occur.SHOULD);
                     

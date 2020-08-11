@@ -78,9 +78,9 @@ public class RelevanceModelIId {
         return this.retrievedDocsTermStats;
     }
 
-    public void buildTermStats() throws Exception {
+    public void buildTermStats(String retrieveMode) throws Exception {
         retrievedDocsTermStats = new RetrievedDocsTermStats(retriever.getReader(), topDocs, numTopDocs);
-        retrievedDocsTermStats.buildAllStats();
+        retrievedDocsTermStats.buildAllStats(retrieveMode);
         reader = retrievedDocsTermStats.getReader();
     }
 
@@ -95,11 +95,11 @@ public class RelevanceModelIId {
                 + (1 - mixingLambda) * wGlobalInfo.df / retrievedDocsTermStats.sumDf;
     }
 
-    public void computeFdbkWeights() throws Exception {
+    public void computeFdbkWeights(String retrieveMode) throws Exception {
         float p_q;
         float p_w;
 
-        buildTermStats();
+        buildTermStats(retrieveMode);
 
         /* For each w \in V (vocab of top docs),
          * compute f(w) = \sum_{q \in qwvecs} K(w,q) */
@@ -131,11 +131,11 @@ public class RelevanceModelIId {
         }
     }
 
-    public void computeKDE() throws Exception {
+    public void computeKDE(String retrieveMode) throws Exception {
         float p_q;
         float p_w;
 
-        buildTermStats();
+        buildTermStats(retrieveMode);
         prepareQueryVector();
 
         /* For each w \in V (vocab of top docs),
@@ -227,13 +227,13 @@ public class RelevanceModelIId {
 
     // Implement post-RLM query expansion. Set the term weights
     // according to the values of f(w).
-    public TRECQuery expandQuery(String queryMode) throws Exception {
+    public TRECQuery expandQuery(String retrieveMode, String weighted) throws Exception {
 
         // The calling sequence has to make sure that the top docs are already
         // reranked by KL-div
         // Now reestimate relevance model on the reranked docs this time
         // for QE.
-        computeFdbkWeights();
+        computeFdbkWeights(retrieveMode);
 
         TRECQuery expandedQuery = new TRECQuery(this.trecQuery);
         Set<Term> origTerms = new HashSet<Term>();
@@ -247,7 +247,7 @@ public class RelevanceModelIId {
         for (Map.Entry<String, RetrievedDocTermInfo> e : retrievedDocsTermStats.termStats.entrySet()) {
             RetrievedDocTermInfo w = e.getValue();
             double docfreq = reader.docFreq(new Term(TrecDocIndexer.ALL_STR, w.getTerm()));
-            if (queryMode.equals("flat")) {
+            if (retrieveMode.equals("flat")) {
                 docfreq = reader.docFreq(new Term(TrecDocIndexer.ALL_STR, w.getTerm()));
             } else {
                 docfreq = reader.docFreq(new Term(TrecDocIndexer.ABSTRACT_TEXT, w.getTerm()));
@@ -273,8 +273,20 @@ public class RelevanceModelIId {
         }
 
         Collections.sort(termStats);
+        if (retrieveMode.equals("flat") && weighted.equals("false")) {
+            for (Term t : origTerms) {
+                origQueryWordStrings.put(t.text(), t.text());
+                TermQuery tq = new TermQuery(t);
+                //+++POST_SIGIR review: Assigned weights according to RLM post QE
+                tq.setBoost((1 - fbweight) / (float) origTerms.size());
+                //tq.setBoost((1-fbweight));
+                //---POST_SIGIR review
+                ((BooleanQuery) expandedQuery.luceneQuery).add(tq, BooleanClause.Occur.SHOULD);
+            }
+        } else {
+            expandedQuery.luceneQuery = this.trecQuery.luceneQuery;
+        }
 
-        expandedQuery.luceneQuery = this.trecQuery.luceneQuery;
         int nTermsAdded = 0;
         for (RetrievedDocTermInfo selTerm : termStats) {
 
@@ -283,10 +295,10 @@ public class RelevanceModelIId {
                 continue;
             }
 
-            if (queryMode.equals("flat")) {
+            if (retrieveMode.equals("flat")) {
                 TermQuery tq = new TermQuery(new Term(TrecDocIndexer.ALL_STR, thisTerm));
                 ((BooleanQuery) expandedQuery.luceneQuery).add(tq, BooleanClause.Occur.SHOULD);
-                tq.setBoost(fbweight * selTerm.wt);
+                tq.setBoost(fbweight);
             } else {
                 TermQuery tq = new TermQuery(new Term(TrecDocIndexer.ABSTRACT_TEXT, thisTerm));
                 ((BooleanQuery) expandedQuery.luceneQuery).add(tq, BooleanClause.Occur.SHOULD);

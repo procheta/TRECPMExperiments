@@ -79,7 +79,6 @@ public class TrecDocRetriever {
 
     public List<TRECQuery> constructQueries() throws Exception {
         String queryFile = prop.getProperty("query.file");
-        System.out.println("weighted " +prop.getProperty("weigted"));
         TRECQueryParser parser = new TRECQueryParser(queryFile, indexer.getAnalyzer(), preretievalExpansion, prop.getProperty("queryMode"), prop.getProperty("weighted"));
         parser.parse();
         if (preretievalExpansion) {
@@ -192,7 +191,7 @@ public class TrecDocRetriever {
             if (Boolean.parseBoolean(prop.getProperty("feedback")) && topDocs.scoreDocs.length > 0) {
                 topDocs = applyFeedback(query, topDocs);
             }
-
+            
             // Save results
             saveRetrievedTuples(fw, query, topDocs);
         }
@@ -215,10 +214,10 @@ public class TrecDocRetriever {
 
         //fdbkModel = new RelevanceModelConditional(this, query, topDocs);
         try {
-            if (kdeType.equals("rlm_conditional")) {
-                fdbkModel.computeFdbkWeights();
+            if (kdeType.equals("rlm_conditional") || kdeType.equals("rlm_iid")) {
+                fdbkModel.computeFdbkWeights(prop.getProperty("retrieveMode"));
             } else {
-                fdbkModel.computeKDE();
+                fdbkModel.computeKDE(prop.getProperty("retrieveMode"));
             }
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -238,11 +237,10 @@ public class TrecDocRetriever {
             return reranked;
         }*/
         // Post retrieval query expansion
-        TRECQuery expandedQuery = fdbkModel.expandQuery(prop.getProperty("queryMode"));
+        TRECQuery expandedQuery = fdbkModel.expandQuery(prop.getProperty("retrieveMode"), prop.getProperty("weighted"));
         //System.out.println("Expanded qry: " + expandedQuery.getLuceneQueryObj());
         // Reretrieve with expanded query
         TopScoreDocCollector collector = TopScoreDocCollector.create(numWanted);
-        searcher.setSimilarity(new BM25Similarity(1, 0.7f));
         topDocs = searcher.search(expandedQuery.getLuceneQueryObj(), 1000);
 
 //        topDocs = collector.topDocs();
