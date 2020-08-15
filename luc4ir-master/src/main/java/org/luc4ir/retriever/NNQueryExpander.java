@@ -93,19 +93,20 @@ public class NNQueryExpander {
         // Initialize a hashmap to store the nn origTerms
         HashMap<String, NNQueryWord> nnMap = new HashMap<>();
         // Iterate over the original origTerms to pairwise compose them
-        for (int i = 0; i < termArray.length-1; i++) {
+        for (int i = 0; i < termArray.length; i++) {
             String thisTerm = termArray[i].text();
             String nextTerm = termArray[i+1].text();
             WordVec thisTermVec = wvecs.getVec(thisTerm);
-            WordVec nextTermVec = wvecs.getVec(nextTerm);
+            /*WordVec nextTermVec = wvecs.getVec(nextTerm);
             if (thisTermVec == null || nextTermVec == null) {
                 continue;
-            }
-            WordVec composedVec = WordVec.centroid(thisTermVec, nextTermVec);
-            List<WordVec> nnvecs = wvecs.getNearestNeighbors(composedVec);
+            }*/
+            if (thisTermVec == null )
+                continue;
+            List<WordVec> nnvecs = wvecs.getNearestNeighbors(thisTermVec);
             
             int nnIndex = 0;
-            System.out.println("NNs of composed words: " + thisTermVec.getWord() + "+" + nextTermVec.getWord());
+            //System.out.println("NNs of composed words: " + thisTermVec.getWord() + "+" + nextTermVec.getWord());
             for (WordVec nnvec : nnvecs) {
                 String thisWord = nnvec.getWord();
                // System.out.println("NN (" + nnIndex + "): " + thisWord + " (" + nnvec.getQuerySim() + ")");
@@ -134,11 +135,13 @@ public class NNQueryExpander {
         for (NNQueryWord nnqw : nnqws) {
             TermQuery tq = new TermQuery(
                    new Term(TrecDocIndexer.ALL_STR, nnqw.wvec.getWord()));
+            System.out.print(nnqw.wvec.getWord());
             if(weighted.equals("true")){
                 tq.setBoost(0.5f);
             }
             ((BooleanQuery)luceneQry).add(tq, BooleanClause.Occur.SHOULD);
         }
+        System.out.println();
     }
     
     public void expandQueriesWithNN(List<TRECQuery> queries) {
