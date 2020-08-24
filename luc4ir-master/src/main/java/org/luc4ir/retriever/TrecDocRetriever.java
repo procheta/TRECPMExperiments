@@ -163,6 +163,14 @@ public class TrecDocRetriever {
     }
 
     TopDocs retrieve(TRECQuery query) throws IOException {
+        String clinicalFeedback = prop.getProperty("clinicalFeedback");
+        if (clinicalFeedback.equals("true")) {
+            File clinicalIndex = new File(prop.getProperty("clinicalIndex"));
+            reader = DirectoryReader.open(FSDirectory.open(clinicalIndex.toPath()));
+            searcher = new IndexSearcher(reader);
+            searcher.setSimilarity(model);
+        }
+
         return searcher.search(query.getLuceneQueryObj(), numWanted);
     }
 
@@ -191,7 +199,7 @@ public class TrecDocRetriever {
             if (Boolean.parseBoolean(prop.getProperty("feedback")) && topDocs.scoreDocs.length > 0) {
                 topDocs = applyFeedback(query, topDocs);
             }
-            
+
             // Save results
             saveRetrievedTuples(fw, query, topDocs);
         }
@@ -241,6 +249,13 @@ public class TrecDocRetriever {
         //System.out.println("Expanded qry: " + expandedQuery.getLuceneQueryObj());
         // Reretrieve with expanded query
         TopScoreDocCollector collector = TopScoreDocCollector.create(numWanted);
+        String clinicalFedback= prop.getProperty("clinicalFeedback");
+        if(clinicalFedback.equals("true")){
+            File index = new File(prop.getProperty("index"));
+            reader = DirectoryReader.open(FSDirectory.open(index.toPath()));
+            searcher = new IndexSearcher(reader);
+            searcher.setSimilarity(model);                        
+        }
         topDocs = searcher.search(expandedQuery.getLuceneQueryObj(), 1000);
 
 //        topDocs = collector.topDocs();
